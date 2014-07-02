@@ -1,0 +1,46 @@
+/**
+ * @file
+ * Styles for Caldora Aeon Link (based on islandora_bookmark).
+ */
+div.caldora-aeon-link-users div.form-item {
+  width: 200px;
+  display: inline-block;
+  display: -moz-inline-block;
+  margin-right: 10px;
+  *display: inline;
+  *zoom: 1;
+  *vertical-align: 2%;
+}
+
+div.caldora-aeon-link-listname div.form-item {
+  display: inline-block;
+  display: -moz-inline-block;
+  margin-right: 10px;
+  *display: inline;
+  *zoom: 1;
+  *vertical-align: 2%;
+}
+
+div.caldora-aeon-link-adduser div.form-item {
+  display: inline-block;
+  display: -moz-inline-block;
+  margin-right: 10px;
+  *display: inline;
+  *zoom: 1;
+  *vertical-align: 2%;
+}
+
+div.caldora-aeon-link-error-message {
+  background-image: linear-gradient(#ee5f5b, #c43c35);
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+#caldora-aeon-link .form-item-add-bookmarks {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+#caldora-aeon-link-detailed-form table .operations {
+  width: 100px;
+}

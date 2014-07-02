@@ -1,0 +1,11 @@
+name = "Caldora Aeon Link"
+description = "Custom Caltech module to construct link to Aeon."
+dependencies[] = islandora
+dependencies[] = islandora_large_image
+package = Islandora
+core = 7.x
+version = 7.x-dev
+files[] = caldora_aeon_link.module
+stylesheets[all][] = css/caldora_aeon_link.css
+
+;configure = admin/islandora/caldora_aeon_link

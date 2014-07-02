@@ -1,0 +1,210 @@
+<?php
+
+/**
+ * @file
+ * Callbacks and hooks for this module.
+ *
+ * Intentionally hardcodes roles when building UI.
+ * This is a custom module it doesn't need the configurability of permissions.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function caldora_aeon_link_theme() {
+  return array(
+    'caldora_aeon_link_object_display' => array(
+      'template' => 'theme/caldora-aeon-link-object-display',
+      'pattern' => 'caldora_aeon_link__',
+      'variables' => array('object_url_info' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_info()
+ */
+function caldora_aeon_link_block_info() {
+  $blocks = array();
+  $blocks['build_aeon_link'] = array(
+  'info' => t('AEON link.'),
+  'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function caldora_aeon_link_block_view($block_name = '') {
+  if ($block_name == 'build_aeon_link') {
+    $content = t('<a href="https://docuserve.library.caltech.edu/aeon/Aeon.dll?Action=10&Form=23&Value=DigitalMaterialsReproductionRequest&genre=default&ItemTitle=Image Archive&ItemSubTitle=Test title here&ItemDate=19xx&CallNumber=1.2-3" target="_blank">REQUEST THIS IMAGE</a>');
+    $block = array(
+    'subject' => t('Archives Request System'),
+    'content' => $content,
+    );
+  return $block;
+  }
+}
+
+/**
+ * Implements hook_islandora_required_objects().
+ */
+function caldora_aeon_link_islandora_required_objects(IslandoraTuque $connection) {
+  $module_path = drupal_get_path('module', 'caldora_aeon_link');
+
+  // Caldora Content Model.
+  $caldora_content_model = $connection->repository->constructObject('ct:imageCModel');
+  $caldora_content_model->owner = 'fedoraAdmin';
+  $caldora_content_model->label = 'Caltech Image Content Model';
+  $caldora_content_model->models = 'fedora-system:ContentModel-3.0';
+
+  // DS-COMPOSITE-MODEL Datastream.
+//  $datastream = $caldora_content_model->constructDatastream('DS-COMPOSITE-MODEL', 'X');
+//  $datastream->label = 'DS-COMPOSITE-MODEL';
+//  $datastream->mimetype = 'text/xml';
+//  $datastream->setContentFromFile("$module_path/data/datastreams/ct_imageCModel/DS-COMPOSITE-MODEL.xml", FALSE);
+//  $caldora_content_model->ingestDatastream($datastream);
+
+  // MODS Schema Datastream.
+  $datastream = $caldora_content_model->constructDatastream('MODS_SCHEMA', 'M');
+  $datastream->label = 'MODS Schema v3.4';
+  $datastream->mimetype = 'text/xml';
+  $datastream->setContentFromFile("$module_path/data/datastreams/ct_imageCModel/MODS_SCHEMA.xml", FALSE);
+  $caldora_content_model->ingestDatastream($datastream);
+
+  return array(
+    'caldora' => array(
+      'title' => 'Caldora',
+      'objects' => array(
+        $caldora_content_model,
+      ),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_preprocess_theme().
+ * Shameless hack.
+ *
+ */
+function caldora_aeon_link_preprocess_caldora_image(&$variables) {
+  module_load_include('inc', 'islandora', 'includes/datastream');
+  module_load_include('inc', 'islandora', 'includes/solution_packs');
+  drupal_add_js('misc/form.js');
+  drupal_add_js('misc/collapse.js');
+  $obj = $variables['object'];
+  $repository = $obj->repository;
+  // label/title
+  $variables['label'] = $obj->label;
+
+  // Make sure we have MODS.
+  if ($obj['MODS']) {
+    $xml = simplexml_load_string($obj['MODS']->content);
+    $xml->registerXPathNamespace('mods', 'http://www.loc.gov/mods/v3');
+
+    // Metadata storage.
+    $metadata = array(
+      array(
+        'label' => t('Title'),
+        'xpath' => '/mods:mods/mods:titleInfo/mods:title',
+        'aeon_tag' => 'ItemSubTitle',
+      ),
+      array(
+        'label' => t('Date Created'),
+        'xpath' => '/mods:mods/mods:originInfo/mods:dateCreated',
+        'aeon_tag' => 'ItemDate',
+      ),
+      array(
+        'label' => t('ID Number'),
+        'xpath' => '/mods:mods/mods:location/mods:shelfLocator',
+        'aeon_tag' => 'CallNumber',
+     ),
+    );
+
+    /*
+     * Process metadata storage array, determine the callback,
+     * return table rows to be displayed.
+     */
+    $rows = array();
+    foreach ($metadata as $value) {
+      $callback = (isset($value['callback']) && !empty($value['callback']) ? $value['callback'] : 'caldora_metadata_standard');
+      if (function_exists($callback)) {
+        $row = call_user_func($callback, $value['label'], $value['xpath'], $xml);
+        if ($row) {
+        $rows = array_merge($rows, $row);
+        }
+      }
+    }
+
+//    $params = array(
+//      'header' => array(),
+//      'rows' => $rows,
+//      'attributes' => array(),
+//      'caption' => '',
+//      'colgroups' => array(),
+//      'sticky' => FALSE,
+//      'empty' => '',
+//    );
+//    $variables['metadata_table'] = theme('table', $params);
+  }
+}
+
+/**
+ * Take a label, xpath and xml, do some xpathing and text structuring.
+ *
+ * @param string $label
+ *   The label for the metadata row
+ *
+ * @param string $xpath
+ *   The xpath to be used on the xml param
+ *
+ * @param SimpleXMLElement $xml
+ *   The xml that the xpath is applied to
+ *
+ * @return array
+ *   2 dimensional array containing metadata element labels and values
+ *   to be used as table rows
+ */
+function caldora_aeon_link_metadata_standard($label = NULL, $xpath = NULL, SimpleXMLElement $xml = NULL) {
+  $aeon_data = array();
+  if ($label && $xpath && $xml) {
+    try {
+      $values = $xml->xpath($xpath);
+      foreach ($values as $value) {
+        $value = trim((string) $value);
+        if ($value) {
+          $aeon_data[$label] = array($value);
+        }
+      }
+    }
+    catch (Exception $exc) {
+      // Error handling.
+    }
+  }
+  return $aeon_data;
+}
+
+/**
+ * Implements hook_preprocess_menu_link().
+ */
+function caldora_aeon_link_preprocess_menu_link(&$variables) {
+  global $user;
+  $menu_name = $variables['element']['#original_link']['menu_name'];
+  // We could also use 'link_title' or 'link_path'.
+  $mlid = $variables['element']['#original_link']['mlid'];
+  // Unset.
+  if ($menu_name == 'user-menu' && $mlid == '568') {
+    if (!in_array('administrator', $user->roles) && !in_array('editor', $user->roles)) {
+      // This is an ugly way to remove a menu link item based
+      // on role without altering user access to the page.
+      $variables['element']['#title'] = NULL;
+      $variables['element']['#theme'] = NULL;
+      $variables['element']['#href'] = NULL;
+      $variables['element']['#attributes'] = array();
+      $variables['element']['#localized_options'] = array();
+      $variables['element']['#original_link'] = array();
+    }
+  }
+}
