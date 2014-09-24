@@ -1,7 +1,6 @@
 name = "Caldora Aeon Link"
 description = "Custom Caltech module for AEON link."
 dependencies[] = islandora
-dependencies[] = islandora_large_image
 package = Islandora
 core = 7.x
 version = 7.x-dev
