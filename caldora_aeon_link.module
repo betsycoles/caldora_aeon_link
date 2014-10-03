@@ -11,12 +11,15 @@
 /**
  * Implements hook_theme().
  */
-function caldora_aeon_link_theme() {
+function caldora_aeon_link_theme($existing, $type, $theme, $path) {
   return array(
     'caldora_aeon_link_object_display' => array(
       'template' => 'theme/caldora-aeon-link-object-display',
-      'pattern' => 'caldora_aeon_link__',
-      'variables' => array('object_url_info' => NULL),
+//      'pattern' => 'caldora_aeon_link_object_display__',
+      'variables' => array(
+        'object' => NULL,
+        'aeon_metadata' => NULL,
+       ),
     ),
   );
 }
@@ -35,17 +38,19 @@ function caldora_aeon_link_block_info() {
 
 /**
  * Implements hook_block_view().
+ *
+ * COMMENTED OUT 9/29/14 to temporarily stop display of the block (bc)
  */
-function caldora_aeon_link_block_view($block_name = '') {
-  if ($block_name == 'build_aeon_link') {
-    $content = t('<a href="https://docuserve.library.caltech.edu/aeon/Aeon.dll?Action=10&Form=23&Value=DigitalMaterialsReproductionRequest&genre=default&ItemTitle=Image Archive&ItemSubTitle=Test title here&ItemDate=19xx&CallNumber=1.2-3" target="_blank">REQUEST THIS IMAGE</a>');
-    $block = array(
-    'subject' => t('Archives Request System'),
-    'content' => $content,
-    );
-  return $block;
-  }
-}
+//function caldora_aeon_link_block_view($block_name = '') {
+//  if ($block_name == 'build_aeon_link') {
+//    $content = theme('caldora_aeon_link_object_display');
+//    $block = array(
+//    'subject' => t('Archives Request System'),
+//    'content' => $content,
+//  );
+//  return $block;
+//  }
+//}
 
 /**
  * Implements hook_islandora_required_objects().
@@ -76,17 +81,17 @@ function caldora_aeon_link_islandora_required_objects(IslandoraTuque $connection
   );
 }
 
-
 /**
- * Implements hook_preprocess_theme().
+ *
+ * Implements hook_preprocess_theme().   
  * Shameless hack.
  *
  */
 function caldora_aeon_link_preprocess_caldora_image(&$variables) {
   module_load_include('inc', 'islandora', 'includes/datastream');
   module_load_include('inc', 'islandora', 'includes/solution_packs');
-  drupal_add_js('misc/form.js');
-  drupal_add_js('misc/collapse.js');
+//  drupal_add_js('misc/form.js');
+//  drupal_add_js('misc/collapse.js');
   $obj = $variables['object'];
   $repository = $obj->repository;
   // label/title
@@ -117,31 +122,45 @@ function caldora_aeon_link_preprocess_caldora_image(&$variables) {
     );
 
     /*
-     * Process metadata storage array, determine the callback,
+     * Process metadata storage array, 
      * return table rows to be displayed.
      */
     $rows = array();
     foreach ($metadata as $value) {
-      $callback = (isset($value['callback']) && !empty($value['callback']) ? $value['callback'] : 'caldora_aeon_link_metadata_standard');
-      if (function_exists($callback)) {
-        $row = call_user_func($callback, $value['label'], $value['xpath'], $xml);
-        if ($row) {
+      $row = caldora_aeon_link_metadata_standard($value['aeon_tag'], $value['xpath'], $xml);
+      if ($row) {
         $rows = array_merge($rows, $row);
-        }
       }
     }
-  }
-// DEBUG
-//  $variables['aeon_test_data'] = "AEON_TEST_DATA";
-//  print_r ($variables['aeon_test_data']);
-// END DEBUG
+//    $params = array(
+//      'header' => array(),
+//      'rows' => $rows,
+//      'attributes' => array(),
+//      'caption' => '',
+//      'colgroups' => array(),
+//      'sticky' => FALSE,
+//      'empty' => '',
+//    );
+//    $variables['aeon_metadata'] = theme('table', $params);
+    $variables['aeon_test_data'] = "AEON_TEST_DATA--";
+    $variables['aeon_metadata'] = $rows;
+  }  
+//DEBUG
+// $variables['aeon_test_data'] = "AEON_TEST_DATA: ";
+// $variables['aeon_metadata'] = $rows;
+// print_r ($variables['aeon_test_data']);
+// print_r ($variables['aeon_metadata']);
+// print_r ($variables['aeon_metadata']['ItemSubTitle']);
+// print_r ($variables);
+//END DEBUG
+//return $rows;
 }
 
 /**
  * Take a label, xpath and xml, do some xpathing and text structuring.
  *
  * @param string $label
- *   The label for the metadata row
+ *   The label for the metadata
  *
  * @param string $xpath
  *   The xpath to be used on the xml param
@@ -150,8 +169,7 @@ function caldora_aeon_link_preprocess_caldora_image(&$variables) {
  *   The xml that the xpath is applied to
  *
  * @return array
- *   2 dimensional array containing metadata element labels and values
- *   to be used as table rows
+ *  array containing metadata element values for each aeon element
  */
 function caldora_aeon_link_metadata_standard($label = NULL, $xpath = NULL, SimpleXMLElement $xml = NULL) {
   $aeon_data = array();
@@ -161,7 +179,7 @@ function caldora_aeon_link_metadata_standard($label = NULL, $xpath = NULL, Simpl
       foreach ($values as $value) {
         $value = trim((string) $value);
         if ($value) {
-          $aeon_data[$label] = array($value);
+          $aeon_data[$label] = $value;
         }
       }
     }
