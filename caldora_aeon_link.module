@@ -129,6 +129,9 @@ function caldora_aeon_link_preprocess_caldora_image(&$variables) {
     foreach ($metadata as $value) {
       $row = caldora_aeon_link_metadata_standard($value['aeon_tag'], $value['xpath'], $xml);
       if ($row) {
+        // remove any double quotes in the data--they will cause the string to be truncated
+        // when it is passed to AEON;
+        $row = str_replace('"', '%22', $row);
         $rows = array_merge($rows, $row);
       }
     }
