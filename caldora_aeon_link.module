@@ -90,19 +90,15 @@ function caldora_aeon_link_islandora_required_objects(IslandoraTuque $connection
 function caldora_aeon_link_preprocess_caldora_image(&$variables) {
   module_load_include('inc', 'islandora', 'includes/datastream');
   module_load_include('inc', 'islandora', 'includes/solution_packs');
-//  drupal_add_js('misc/form.js');
-//  drupal_add_js('misc/collapse.js');
   $obj = $variables['object'];
   $repository = $obj->repository;
-  // label/title
   $variables['label'] = $obj->label;
+  $print = (isset($variables['print']) ? $variables['print'] : FALSE);
 
-  // Make sure we have MODS.
-  if ($obj['MODS']) {
+  if ($obj['MODS'] && !$print) {
     $xml = simplexml_load_string($obj['MODS']->content);
     $xml->registerXPathNamespace('mods', 'http://www.loc.gov/mods/v3');
 
-    // Metadata storage.
     $metadata = array(
       array(
         'label' => t('Title'),
@@ -135,28 +131,8 @@ function caldora_aeon_link_preprocess_caldora_image(&$variables) {
         $rows = array_merge($rows, $row);
       }
     }
-//    $params = array(
-//      'header' => array(),
-//      'rows' => $rows,
-//      'attributes' => array(),
-//      'caption' => '',
-//      'colgroups' => array(),
-//      'sticky' => FALSE,
-//      'empty' => '',
-//    );
-//    $variables['aeon_metadata'] = theme('table', $params);
-    $variables['aeon_test_data'] = "AEON_TEST_DATA--";
     $variables['aeon_metadata'] = $rows;
   }  
-//DEBUG
-// $variables['aeon_test_data'] = "AEON_TEST_DATA: ";
-// $variables['aeon_metadata'] = $rows;
-// print_r ($variables['aeon_test_data']);
-// print_r ($variables['aeon_metadata']);
-// print_r ($variables['aeon_metadata']['ItemSubTitle']);
-// print_r ($variables);
-//END DEBUG
-//return $rows;
 }
 
 /**
@@ -190,8 +166,5 @@ function caldora_aeon_link_metadata_standard($label = NULL, $xpath = NULL, Simpl
       // Error handling.
     }
   }
-// DEBUG
-//  print_r ($aeon_data);
-// END DEBUG
   return $aeon_data;
 }
